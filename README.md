@@ -47,7 +47,8 @@ Their are a few different options you may pass as URL parameters to generate fig
 
 | key            | default | description                                                         |
 | -------------- | ------- | ------------------------------------------------------------------- |
-| figure         | null    | The figure string to be rendered                                    |
+| figure         | null    | The figure string to be rendered (multiple items per type and custom RGB colors are supported) |
+| gender         | M       | `M` or `F`, used to fill missing mandatory parts                    |
 | action         | null    | The actions to render, see actions below                            |
 | gesture        | std     | The gesture to render, see gestures below                           |
 | direction      | 2       | The direction to render, from 0-7                                   |
@@ -106,11 +107,19 @@ To hold a certain drink, use an equal separator with the hand item id. You can o
 
 | key | description                  |
 | --- | ---------------------------- |
-| s   | Renders the small size (0.5) |
+| s   | Renders the small size using the real small assets (`sh` / `hh_*_50_*`); parts without them are downscaled with a box filter |
 | n   | Renders the normal size (1)  |
-| l   | Renders the large size (2)   |
+| l   | Renders the large size (2x, nearest neighbor) |
+
+## Hubbe compatibility
+
+- Several items of the same type: `ha-1001-1.ha-1002-61`
+- Custom colors: any color id that is not in the palette is read as an RGB integer (`ch-210-16711680`), `#ff0000`/`ff0000` also work (encode `#` as `%23`)
+- Conflicting libraries (the same part in more than one library) are resolved the same way as the Hubbe renderer
+- Custom dances (`dance=5` and up)
+- `AVATAR_GIF_FRAME_DELAY_MS` (default 80) controls the GIF speed
 
 ## Known Issues
 
--   GIFs are only able to render 1 bit alpha channels, therefore most effects will not correctly render due to using many different alpha values.
+-   GIFs only support 1 bit alpha, so semi transparent effect pixels are thresholded.
 -   The rendered canvas size may not match habbos imager exactly, we will hopefully have this addressed soon.

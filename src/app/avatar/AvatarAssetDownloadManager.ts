@@ -56,6 +56,8 @@ export class AvatarAssetDownloadManager
 
             this._libraryNames.push(id);
 
+            this._structure.libraryResolver.addLibrary(id, library.parts);
+
             const downloadLibrary = new AvatarAssetDownloadLibrary(id, revision, this._assets, url);
 
             for(const part of library.parts)
@@ -114,26 +116,36 @@ export class AvatarAssetDownloadManager
 
             if(!set) continue;
 
-            const figurePartSet = set.getPartSet(container.getPartSetId(key));
+            const partCount = Math.max(1, container.getPartCount(key));
 
-            if(!figurePartSet) continue;
-
-            for(const part of figurePartSet.parts)
+            for(let partIndex = 0; partIndex < partCount; partIndex++)
             {
-                if(!part) continue;
+                const figurePartSet = set.getPartSet(container.getPartSetId(key, partIndex));
 
-                const name = (part.type + ':' + part.id);
-                const existing = this._figureMap.getValue(name);
+                if(!figurePartSet) continue;
 
-                if(existing === undefined) continue;
-
-                for(const library of existing)
+                for(const part of figurePartSet.parts)
                 {
-                    if(!library || library.isLoaded) continue;
+                    if(!part) continue;
 
-                    if(pendingLibraries.indexOf(library) >= 0) continue;
+                    const name = (part.type + ':' + part.id);
+                    const existing = this._figureMap.getValue(name);
 
-                    pendingLibraries.push(library);
+                    if(existing === undefined) continue;
+
+                    const resolver = this._structure.libraryResolver;
+                    const required = (resolver.isConflictingPart(part.type, part.id) ? resolver.getRequiredLibraries(figurePartSet, part) : null);
+
+                    for(const library of existing)
+                    {
+                        if(!library || library.isLoaded) continue;
+
+                        if(required && (required.indexOf(library.libraryName) === -1)) continue;
+
+                        if(pendingLibraries.indexOf(library) >= 0) continue;
+
+                        pendingLibraries.push(library);
+                    }
                 }
             }
         }

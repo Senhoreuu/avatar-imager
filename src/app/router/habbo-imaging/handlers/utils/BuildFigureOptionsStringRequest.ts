@@ -7,10 +7,11 @@ export const BuildFigureOptionsStringRequest = (buildOptions: IFigureBuildOption
     let buildString = '';
 
     if(buildOptions.figure) buildString += buildOptions.figure;
+    if(buildOptions.gender) buildString += PART_SEPARATOR + 'gd-' + buildOptions.gender;
     if(buildOptions.size) buildString += PART_SEPARATOR + 's-' + buildOptions.size;
     if(buildOptions.setType) buildString += PART_SEPARATOR + 'st-' + buildOptions.setType;
-    if(buildOptions.direction) buildString += PART_SEPARATOR + 'd-' + buildOptions.direction;
-    if(buildOptions.headDirection) buildString += PART_SEPARATOR + 'hd-' + buildOptions.headDirection;
+    if(buildOptions.direction !== null) buildString += PART_SEPARATOR + 'd-' + buildOptions.direction;
+    if(buildOptions.headDirection !== null) buildString += PART_SEPARATOR + 'hd-' + buildOptions.headDirection;
     if(buildOptions.action) buildString += PART_SEPARATOR + 'a-' + buildOptions.action;
     if(buildOptions.gesture) buildString += PART_SEPARATOR + 'g-' + buildOptions.gesture;
     if(buildOptions.dance) buildString += PART_SEPARATOR + 'da-' + buildOptions.dance;

@@ -7,6 +7,7 @@ export * from './AvatarFigureContainer';
 export * from './AvatarImage';
 export * from './AvatarImageBodyPartContainer';
 export * from './AvatarImagePartContainer';
+export * from './AvatarLibraryResolver';
 export * from './AvatarRenderManager';
 export * from './AvatarStructure';
 export * from './cache';

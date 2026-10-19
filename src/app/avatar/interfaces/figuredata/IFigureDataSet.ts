@@ -12,4 +12,6 @@ export interface IFigureDataSet
     sellable?: boolean;
     parts?: IFigureDataPart[];
     hiddenLayers?: IFigureDataHiddenLayer[];
+    lib?: string;
+    library?: string;
 }

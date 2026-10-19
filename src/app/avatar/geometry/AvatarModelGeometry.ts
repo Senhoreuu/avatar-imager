@@ -12,6 +12,8 @@ export class AvatarModelGeometry
     private _avatarSet: AvatarSet;
     private _geometryTypes: AdvancedMap<string, AdvancedMap<string, GeometryBodyPart>>;
     private _itemIdToBodyPartMap: AdvancedMap<string, AdvancedMap<string, GeometryBodyPart>>;
+    private _orderBefore: Map<string, string> = new Map();
+    private _orderAfter: Map<string, string> = new Map();
     private _transformation: Matrix4x4;
     private _canvases: AdvancedMap<string, AdvancedMap<string, AvatarCanvas>>;
 
@@ -76,6 +78,10 @@ export class AvatarModelGeometry
                         const geometryBodyPart = new GeometryBodyPart(bodyPart);
 
                         bodyParts.add(geometryBodyPart.id, geometryBodyPart);
+
+                        if(bodyPart.orderBefore) this._orderBefore.set(geometryBodyPart.id, bodyPart.orderBefore);
+
+                        if(bodyPart.orderAfter) this._orderAfter.set(geometryBodyPart.id, bodyPart.orderAfter);
 
                         for(const part of geometryBodyPart.getPartIds(null))
                         {
@@ -269,7 +275,31 @@ export class AvatarModelGeometry
             ids.push(set[1].id);
         }
 
+        for(const [ id, target ] of this._orderBefore) this.placeBodyPart(ids, id, target, 0);
+
+        for(const [ id, target ] of this._orderAfter) this.placeBodyPart(ids, id, target, 1);
+
         return ids;
+    }
+
+    private placeBodyPart(ids: string[], id: string, target: string, offset: number): void
+    {
+        const index = ids.indexOf(id);
+
+        if(index === -1) return;
+
+        ids.splice(index, 1);
+
+        const targetIndex = ids.indexOf(target);
+
+        if(targetIndex === -1)
+        {
+            ids.splice(index, 0, id);
+
+            return;
+        }
+
+        ids.splice((targetIndex + offset), 0, id);
     }
 
     public getParts(k: string, _arg_2: string, _arg_3: number, _arg_4: any[], _arg_5:IAvatarImage): string[]

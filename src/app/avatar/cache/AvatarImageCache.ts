@@ -1,4 +1,4 @@
-import { AdvancedMap, CanvasUtilities, Point, Rectangle } from '../../../core';
+import { AdvancedMap, CanvasUtilities, IGraphicAsset, Point, Rectangle, Texture } from '../../../core';
 import { IActiveActionData } from '../actions';
 import { AssetAliasCollection } from '../alias';
 import { AvatarAnimationLayerData } from '../animation';
@@ -27,6 +27,7 @@ export class AvatarImageCache
     private _disposed: boolean;
     private _geometryType: string;
     private _unionImages: ImageData[];
+    private _missingScaleAssets: number = 0;
 
     constructor(structure: AvatarStructure, avatarImage: IAvatarImage, aliasCollection: AssetAliasCollection, scale: string)
     {
@@ -38,6 +39,11 @@ export class AvatarImageCache
         this._canvas = null;
         this._disposed = false;
         this._unionImages = [];
+    }
+
+    public get missingScaleAssets(): number
+    {
+        return this._missingScaleAssets;
     }
 
     public dispose(): void
@@ -349,7 +355,7 @@ export class AvatarImageCache
 
                     if(isFlipped)
                     {
-                        if(((assetPartDefinition === 'wav') && (((partType === AvatarFigurePartType.LEFT_HAND) || (partType === AvatarFigurePartType.LEFT_SLEEVE)) || (partType === AvatarFigurePartType.LEFT_COAT_SLEEVE))) || ((assetPartDefinition === 'drk') && (((partType === AvatarFigurePartType.RIGHT_HAND) || (partType === AvatarFigurePartType.RIGHT_SLEEVE)) || (partType === AvatarFigurePartType.RIGHT_COAT_SLEEVE))) || ((assetPartDefinition === 'blw') && (partType === AvatarFigurePartType.RIGHT_HAND)) || ((assetPartDefinition === 'sig') && (partType === AvatarFigurePartType.LEFT_HAND)) || ((assetPartDefinition === 'respect') && (partType === AvatarFigurePartType.LEFT_HAND)) || (partType === AvatarFigurePartType.RIGHT_HAND_ITEM) || (partType === AvatarFigurePartType.LEFT_HAND_ITEM) || (partType === AvatarFigurePartType.CHEST_PRINT))
+                        if(((assetPartDefinition === 'wav') && ((partType === AvatarFigurePartType.LEFT_HAND) || (partType === AvatarFigurePartType.LEFT_SLEEVE) || (partType === AvatarFigurePartType.LEFT_COAT_SLEEVE) || (partType === AvatarFigurePartType.MISC_LEFT))) || ((assetPartDefinition === 'drk') && ((partType === AvatarFigurePartType.RIGHT_HAND) || (partType === AvatarFigurePartType.RIGHT_SLEEVE) || (partType === AvatarFigurePartType.RIGHT_COAT_SLEEVE) || (partType === AvatarFigurePartType.MISC_RIGHT))) || ((assetPartDefinition === 'blw') && (partType === AvatarFigurePartType.RIGHT_HAND)) || ((assetPartDefinition === 'sig') && (partType === AvatarFigurePartType.LEFT_HAND)) || ((assetPartDefinition === 'respect') && (partType === AvatarFigurePartType.LEFT_HAND)) || (partType === AvatarFigurePartType.RIGHT_HAND_ITEM) || (partType === AvatarFigurePartType.LEFT_HAND_ITEM) || (partType === AvatarFigurePartType.CHEST_PRINT))
                         {
                             flipH = true;
                         }
@@ -363,33 +369,63 @@ export class AvatarImageCache
                         }
                     }
 
-                    let assetName   = (this._scale + '_' + assetPartDefinition + '_' + partType + '_' + partId + '_' + assetDirection + '_' + frameNumber);
-                    let asset       = this._assets.getAsset(assetName);
+                    const defaultPartDefinition = ((this._geometryType === GeometryType.HORIZONTAL) ? 'lay' : 'std');
+                    const assetCandidates: [ string, number ][] = [ [ assetPartDefinition, frameNumber ], [ assetPartDefinition, 0 ], [ defaultPartDefinition, frameNumber ], [ defaultPartDefinition, 0 ] ];
 
-                    if(!asset)
+                    if(defaultPartDefinition !== 'std') assetCandidates.push([ 'std', 0 ]);
+
+                    let asset: IGraphicAsset = null;
+
+                    for(const [ partDefinition, partFrame ] of assetCandidates)
                     {
-                        assetName   = (this._scale + '_std_' + partType + '_' + partId + '_' + assetDirection + '_0');
-                        asset       = this._assets.getAsset(assetName);
+                        const assetName = (this._scale + '_' + partDefinition + '_' + partType + '_' + partId + '_' + assetDirection + '_' + partFrame);
+
+                        asset = this._assets.getAssetFromLibraries(assetName, container.libraries, container.strictLibraries);
+
+                        if(asset) break;
                     }
+
+                    let texture: Texture = null;
+                    let rectangle: Rectangle = null;
+                    let offset: Point = null;
 
                     if(asset)
                     {
-                        const texture = asset.texture;
-
-                        if(!texture)
+                        texture = asset.texture;
+                        rectangle = asset.rectangle;
+                        offset = new Point(-(asset.x), -(asset.y));
+                    }
+                    else if(this._scale === AvatarScaleType.SMALL)
+                    {
+                        // custom libraries usually only have the large scale (h): use it at half size instead of hiding the part
+                        for(const [ partDefinition, partFrame ] of assetCandidates)
                         {
-                            isCacheable = false;
+                            const largeName = (AvatarScaleType.LARGE + '_' + partDefinition + '_' + partType + '_' + partId + '_' + assetDirection + '_' + partFrame);
+                            const largeAsset = this._assets.getAssetFromLibraries(largeName, container.libraries, container.strictLibraries);
+
+                            if(!largeAsset || !largeAsset.texture) continue;
+
+                            this._missingScaleAssets++;
+
+                            texture = largeAsset.texture.getHalfScaled();
+                            rectangle = new Rectangle(0, 0, texture.width, texture.height);
+                            offset = new Point(Math.round(-(largeAsset.x) / 2), Math.round(-(largeAsset.y) / 2));
+
+                            break;
                         }
-                        else
-                        {
-                            if(container.isColorable && container.color) color = container.color.rgb;
+                    }
 
-                            const offset = new Point(-(asset.x), -(asset.y));
+                    if(asset && !texture)
+                    {
+                        isCacheable = false;
+                    }
+                    else if(texture)
+                    {
+                        if(container.isColorable && container.color) color = container.color.rgb;
 
-                            if(flipH) offset.x = (offset.x + ((this._scale === AvatarScaleType.LARGE) ? 65 : 31));
+                        if(flipH) offset.x = (offset.x + ((this._scale === AvatarScaleType.LARGE) ? 65 : 31));
 
-                            this._unionImages.push(new ImageData(texture, asset.rectangle, offset, flipH, color));
-                        }
+                        this._unionImages.push(new ImageData(texture, rectangle, offset, flipH, color));
                     }
                 }
             }

@@ -2,9 +2,11 @@ import { RequestQuery } from './RequestQuery';
 
 export const GetSizeRequest = (query: RequestQuery) =>
 {
-    if(query.size === 's') return 0.5;
+    const size = (query.size || '').toString().toLowerCase();
 
-    if(query.size === 'l') return 2;
+    if(size === 's') return 0.5;
+
+    if((size === 'l') || (size === 'b')) return 2;
 
     return 1;
 }

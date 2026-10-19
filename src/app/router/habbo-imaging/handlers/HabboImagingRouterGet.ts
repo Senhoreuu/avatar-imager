@@ -1,11 +1,19 @@
-import { Canvas, createCanvas } from 'canvas';
+import { Canvas } from 'canvas';
+import { createHash } from 'crypto';
 import { Request, Response } from 'express';
-import { createWriteStream, writeFile, WriteStream } from 'fs';
-import * as GIFEncoder from 'gifencoder';
-import { File, FileUtilities, Point } from '../../../../core';
+import { writeFile } from 'fs';
+import { CanvasUtilities, File, FileUtilities, GifWriter } from '../../../../core';
 import { Application } from '../../../Application';
-import { AvatarScaleType, IAvatarImage } from '../../../avatar';
-import { BuildFigureOptionsRequest, BuildFigureOptionsStringRequest, ProcessActionRequest, ProcessDanceRequest, ProcessDirectionRequest, ProcessEffectRequest, ProcessGestureRequest, RequestQuery } from './utils';
+import { AvatarScaleType, AvatarSetType, IAvatarImage, ISpriteDataContainer } from '../../../avatar';
+import { BuildFigureOptionsRequest, BuildFigureOptionsStringRequest, IFigureBuildOptions, ProcessActionRequest, ProcessDanceRequest, ProcessDirectionRequest, ProcessEffectRequest, ProcessGestureRequest, RequestQuery } from './utils';
+
+// bump this whenever the output changes, so old cached files are not served anymore
+const RENDER_VERSION = 'hubbe-3';
+
+// Nitro updates the avatar animation every 2 room frames (24fps) => ~12 frames per second
+const GIF_FRAME_DELAY = (parseInt(process.env.AVATAR_GIF_FRAME_DELAY_MS) || 80);
+
+const pendingRenders: Map<string, Promise<Buffer>> = new Map();
 
 export const HabboImagingRouterGet = async (request: Request<any, any, any, RequestQuery>, response: Response) =>
 {
@@ -14,10 +22,12 @@ export const HabboImagingRouterGet = async (request: Request<any, any, any, Requ
     try
     {
         const buildOptions = BuildFigureOptionsRequest(query);
-        const saveDirectory = (process.env.AVATAR_SAVE_PATH as string);
-        const directory = FileUtilities.getDirectory(saveDirectory);
-        const avatarString = BuildFigureOptionsStringRequest(buildOptions);
-        const saveFile = new File(`${ directory.path }/${ avatarString }.${ buildOptions.imageFormat }`);
+        const contentType = ((buildOptions.imageFormat === 'gif') ? 'image/gif' : 'image/png');
+        const directory = FileUtilities.getDirectory(process.env.AVATAR_SAVE_PATH as string);
+
+        // the figure string can be huge (multiple items per type) and may contain characters that are not valid on a file name
+        const cacheKey = createHash('sha1').update(RENDER_VERSION + '|' + BuildFigureOptionsStringRequest(buildOptions)).digest('hex');
+        const saveFile = new File(`${ directory.path }/${ cacheKey }.${ buildOptions.imageFormat }`);
 
         if(saveFile.exists())
         {
@@ -25,212 +35,304 @@ export const HabboImagingRouterGet = async (request: Request<any, any, any, Requ
 
             if(buffer)
             {
-                response
-                    .writeHead(200, {
-                        'Content-Type': ((buildOptions.imageFormat === 'gif') ? 'image/gif' : 'image/png')
-                    })
-                    .end(buffer);
-            }
-
-            return;
-        }
-
-        if(buildOptions.effect > 0)
-        {
-            if(!Application.instance.avatar.effectManager.isAvatarEffectReady(buildOptions.effect))
-            {
-                await Application.instance.avatar.effectManager.downloadAvatarEffect(buildOptions.effect);
-            }
-        }
-        
-        const avatar = await Application.instance.avatar.createAvatarImage(buildOptions.figure, AvatarScaleType.LARGE, 'M');
-        const avatarCanvas = Application.instance.avatar.structure.getCanvas(avatar.getScale(), avatar.mainAction.definition.geometryType);
-
-        ProcessDirectionRequest(query, avatar);
-
-        avatar.initActionAppends();
-
-        ProcessActionRequest(query, avatar);
-        ProcessGestureRequest(query, avatar);
-        ProcessDanceRequest(query, avatar);
-        ProcessEffectRequest(query, avatar);
-
-        avatar.endActionAppends();
-
-        const bgColor = 376510773; // magenta
-
-        const tempCanvas = createCanvas((avatarCanvas.width * buildOptions.size), (avatarCanvas.height * buildOptions.size));
-        const tempCtx = tempCanvas.getContext('2d');
-
-        let encoder: GIFEncoder = null;
-        let stream: WriteStream = null;
-
-        if(buildOptions.imageFormat === 'gif')
-        {
-            encoder = new GIFEncoder(tempCanvas.width, tempCanvas.height);
-            stream = encoder.createReadStream().pipe(createWriteStream(saveFile.path));
-
-            encoder.setTransparent(bgColor);
-            encoder.start();
-            encoder.setRepeat(0);
-            encoder.setDelay(1);
-            encoder.setQuality(10);
-        }
-
-        let totalFrames = 0;
-
-        if(buildOptions.imageFormat !== 'gif')
-        {
-            if(buildOptions.frameNumber > 0) avatar.updateAnimationByFrames(buildOptions.frameNumber);
-
-            totalFrames = 1;
-        }
-        else
-        {
-            totalFrames = ((avatar.getTotalFrameCount() * 2) || 1);
-        }
-
-        for(let i = 0; i < totalFrames; i++)
-        {
-            tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
-
-            if(totalFrames && (i > 0)) avatar.updateAnimationByFrames(1);
-
-            const canvas = await avatar.getImage(buildOptions.setType, 0, false, buildOptions.size);
-
-            const avatarOffset = new Point();
-            const canvasOffset = new Point();
-
-            canvasOffset.x = ((tempCanvas.width - canvas.width) / 2);
-            canvasOffset.y = ((tempCanvas.height - canvas.height) / 2);
-
-            for(const sprite of avatar.getSprites())
-            {
-                if(sprite.id === 'avatar')
-                {
-                    const layerData = avatar.getLayerData(sprite);
-
-                    avatarOffset.x = sprite.getDirectionOffsetX(buildOptions.direction);
-                    avatarOffset.y = sprite.getDirectionOffsetY(buildOptions.direction);
-
-                    if(layerData)
-                    {
-                        avatarOffset.x += layerData.dx;
-                        avatarOffset.y += layerData.dy;
-                    }
-                }
-            }
-
-            const avatarSize = 64;
-            const sizeOffset = new Point(((canvas.width - avatarSize) / 2), (canvas.height - (avatarSize / 4)));
-
-            ProcessAvatarSprites(tempCanvas, avatar, avatarOffset, canvasOffset.add(sizeOffset), false);
-            tempCtx.drawImage(canvas, avatarOffset.x, avatarOffset.y, canvas.width, canvas.height);
-            ProcessAvatarSprites(tempCanvas, avatar, avatarOffset, canvasOffset.add(sizeOffset), true);
-
-            if(encoder)
-            {
-                encoder.addFrame(tempCtx);
-            }
-            else
-            {
-                const buffer = tempCanvas.toBuffer();
-
-                response
-                    .writeHead(200, {
-                        'Content-Type': 'image/png'
-                    })
-                    .end(buffer);
-
-                writeFile(saveFile.path, buffer, () => {});
+                SendImage(response, contentType, buffer);
 
                 return;
             }
         }
 
-        if(encoder) encoder.finish();
+        let pending = pendingRenders.get(cacheKey);
 
-        if(stream)
+        if(!pending)
         {
-            await new Promise((resolve, reject) =>
-            {
-                stream.on('finish', resolve);
-                stream.on('error', reject);
-            });
+            pending = RenderAvatar(query, buildOptions);
+
+            pendingRenders.set(cacheKey, pending);
+
+            pending
+                .then(buffer => writeFile(saveFile.path, buffer, () => {}))
+                .catch(() => {})
+                .finally(() => pendingRenders.delete(cacheKey));
         }
 
-        const buffer = await FileUtilities.readFileAsBuffer(saveFile.path);
-
-        response
-            .writeHead(200, {
-                'Content-Type': 'image/gif'
-            })
-            .end(buffer);
+        SendImage(response, contentType, await pending);
     }
 
     catch(err)
     {
-        Application.instance.logger.error(err.message);
+        Application.instance.logger.error((err && err.stack) || err);
 
-        response
-            .writeHead(500)
-            .end();
+        if(!response.headersSent) response.writeHead(500).end();
     }
 }
 
-function ProcessAvatarSprites(canvas: Canvas, avatar: IAvatarImage, avatarOffset: Point, canvasOffset: Point, frontSprites: boolean = true)
+const SendImage = (response: Response, contentType: string, buffer: Buffer) =>
 {
-    const ctx = canvas.getContext('2d');
+    response
+        .writeHead(200, {
+            'Content-Type': contentType,
+            'Cache-Control': 'public, max-age=86400'
+        })
+        .end(buffer);
+}
 
-    for(const sprite of avatar.getSprites())
+interface IRenderedFrames
+{
+    frames: Canvas[];
+    missingScaleAssets: number;
+}
+
+const RenderAvatar = async (query: RequestQuery, buildOptions: IFigureBuildOptions): Promise<Buffer> =>
+{
+    if(buildOptions.effect > 0)
     {
-        if(sprite.id === 'avatar') continue;
-        
+        const effectManager = Application.instance.avatar.effectManager;
+
+        if(!effectManager.isAvatarEffectReady(buildOptions.effect)) await effectManager.downloadAvatarEffect(buildOptions.effect);
+    }
+
+    const wantsSmall = (buildOptions.size < 1);
+
+    let frames: Canvas[] = null;
+
+    if(wantsSmall && !(buildOptions.effect > 0))
+    {
+        // the small size uses the real small assets (sh_* / hh_*_50_*) instead of shrinking the large ones.
+        // parts without small assets (custom clothes) are downscaled individually inside the avatar cache
+        frames = (await RenderFrames(query, buildOptions, AvatarScaleType.SMALL)).frames;
+    }
+
+    if(!frames)
+    {
+        frames = (await RenderFrames(query, buildOptions, AvatarScaleType.LARGE)).frames;
+
+        if(wantsSmall) frames = frames.map(frame => CanvasUtilities.downscaleHalf(frame));
+        else if(buildOptions.size > 1) frames = frames.map(frame => CanvasUtilities.scaleNearest(frame, buildOptions.size));
+    }
+
+    if(buildOptions.imageFormat !== 'gif') return frames[0].toBuffer('image/png');
+
+    const writer = new GifWriter(frames[0].width, frames[0].height);
+
+    for(const frame of frames)
+    {
+        writer.addFrame(frame.getContext('2d').getImageData(0, 0, frame.width, frame.height).data, GIF_FRAME_DELAY);
+    }
+
+    return writer.encode();
+}
+
+interface ISpriteDraw
+{
+    image: Canvas;
+    x: number;
+    y: number;
+    z: number;
+    flipH: boolean;
+    additive: boolean;
+}
+
+interface IFrameLayout
+{
+    image: Canvas;
+    x: number;
+    y: number;
+    back: ISpriteDraw[];
+    front: ISpriteDraw[];
+}
+
+const RenderFrames = async (query: RequestQuery, buildOptions: IFigureBuildOptions, scaleType: string): Promise<IRenderedFrames> =>
+{
+    const avatar = await Application.instance.avatar.createAvatarImage(buildOptions.figure, scaleType, buildOptions.gender);
+
+    if(!avatar) throw new Error('Unable to create the avatar image');
+
+    ProcessDirectionRequest(query, avatar);
+
+    avatar.initActionAppends();
+
+    ProcessActionRequest(query, avatar);
+    ProcessGestureRequest(query, avatar);
+    ProcessDanceRequest(query, avatar);
+    ProcessEffectRequest(query, avatar);
+
+    await avatar.endActionAppends();
+
+    // the client sets the direction after the actions: effects with a direction offset (and lay) depend on it
+    const bodyDirection = avatar.getDirection();
+
+    avatar.setDirection(AvatarSetType.FULL, bodyDirection);
+
+    if(buildOptions.headDirection !== buildOptions.direction) avatar.setDirection(AvatarSetType.HEAD, buildOptions.headDirection);
+
+    const isGif = (buildOptions.imageFormat === 'gif');
+    const scale = ((scaleType === AvatarScaleType.LARGE) ? 64 : 32);
+
+    let totalFrames = 1;
+
+    if(isGif) totalFrames = Math.max(1, (avatar.getTotalFrameCount() * 2));
+    else if(buildOptions.frameNumber > 0) avatar.updateAnimationByFrames(buildOptions.frameNumber);
+
+    const layouts: IFrameLayout[] = [];
+
+    for(let i = 0; i < totalFrames; i++)
+    {
+        if(i > 0) avatar.updateAnimationByFrames(1);
+
+        const image = await avatar.getImage(buildOptions.setType, 0, false, 1);
+
+        if(!image) throw new Error('Unable to render the avatar image');
+
+        layouts.push(BuildFrameLayout(avatar, image, scale));
+    }
+
+    // canvas = the avatar canvas, expanded when an effect draws outside of it
+    let minX = 0;
+    let minY = 0;
+    let maxX = layouts[0].image.width;
+    let maxY = layouts[0].image.height;
+
+    for(const layout of layouts)
+    {
+        minX = Math.min(minX, layout.x);
+        minY = Math.min(minY, layout.y);
+        maxX = Math.max(maxX, (layout.x + layout.image.width));
+        maxY = Math.max(maxY, (layout.y + layout.image.height));
+
+        for(const sprite of [ ...layout.back, ...layout.front ])
+        {
+            const left = (sprite.flipH ? (sprite.x - sprite.image.width) : sprite.x);
+
+            minX = Math.min(minX, left);
+            minY = Math.min(minY, sprite.y);
+            maxX = Math.max(maxX, (left + sprite.image.width));
+            maxY = Math.max(maxY, (sprite.y + sprite.image.height));
+        }
+    }
+
+    minX = Math.floor(minX);
+    minY = Math.floor(minY);
+
+    const width = Math.ceil(maxX - minX);
+    const height = Math.ceil(maxY - minY);
+    const frames: Canvas[] = [];
+
+    for(const layout of layouts)
+    {
+        const canvas = CanvasUtilities.createNitroCanvas(width, height);
+        const ctx = canvas.getContext('2d');
+
+        const drawSprite = (sprite: ISpriteDraw) =>
+        {
+            ctx.save();
+
+            if(sprite.additive) ctx.globalCompositeOperation = 'lighter';
+
+            if(sprite.flipH)
+            {
+                ctx.translate(Math.round(sprite.x - minX), Math.round(sprite.y - minY));
+                ctx.scale(-1, 1);
+                ctx.drawImage(sprite.image, 0, 0);
+            }
+            else
+            {
+                ctx.drawImage(sprite.image, Math.round(sprite.x - minX), Math.round(sprite.y - minY));
+            }
+
+            ctx.restore();
+        };
+
+        for(const sprite of layout.back) drawSprite(sprite);
+
+        ctx.drawImage(layout.image, Math.round(layout.x - minX), Math.round(layout.y - minY));
+
+        for(const sprite of layout.front) drawSprite(sprite);
+
+        frames.push(canvas);
+    }
+
+    return { frames, missingScaleAssets: avatar.missingScaleAssets };
+}
+
+// same math used by the Nitro AvatarVisualization to place the avatar and the effect sprites
+const BuildFrameLayout = (avatar: IAvatarImage, image: Canvas, scale: number): IFrameLayout =>
+{
+    const direction = avatar.getDirection();
+    const canvasOffsets = (avatar.getCanvasOffsets() || [ 0, 0, 0 ]);
+    const footX = ((image.width / 2) - (canvasOffsets[0] || 0));
+    const footY = ((image.height - (scale / 4)) - (canvasOffsets[1] || 0));
+    const layout: IFrameLayout = { image, x: 0, y: 0, back: [], front: [] };
+
+    for(const sprite of (avatar.getSprites() || []))
+    {
+        if(sprite.id === 'avatar')
+        {
+            const [ offsetX, offsetY ] = GetSpriteOffset(avatar, sprite, direction, scale);
+
+            layout.x = offsetX;
+            layout.y = offsetY;
+
+            continue;
+        }
+
         const layerData = avatar.getLayerData(sprite);
 
-        let offsetX = sprite.getDirectionOffsetX(avatar.getDirection());
-        let offsetY = sprite.getDirectionOffsetY(avatar.getDirection());
-        let offsetZ = sprite.getDirectionOffsetZ(avatar.getDirection());
-        let direction = 0;
         let frame = 0;
-
-        if(!frontSprites)
-        {
-            if(offsetZ >= 0) continue;
-        }
-        else if(offsetZ < 0) continue;
-
-        if(sprite.hasDirections) direction = avatar.getDirection();
+        let dd = (sprite.hasDirections ? direction : 0);
 
         if(layerData)
         {
             frame = layerData.animationFrame;
-            offsetX = (offsetX + layerData.dx);
-            offsetY = (offsetY + layerData.dy);
-            direction = (direction + layerData.dd);
+            dd += layerData.dd;
         }
 
-        if(direction < 0) direction = (direction + 8);
+        if(dd < 0) dd += 8;
+        else if(dd > 7) dd -= 8;
 
-        if(direction > 7) direction = (direction - 8);
+        const asset = avatar.getAsset(`${ avatar.getScale() }_${ sprite.member }_${ dd }_${ frame }`);
 
-        const assetName = ((((((avatar.getScale() + "_") + sprite.member) + "_") + direction) + "_") + frame);
-        const asset = avatar.getAsset(assetName);
+        if(!asset || !asset.texture) continue;
 
-        if(!asset) continue;
-        
-        const texture = asset.texture;
+        const [ offsetX, offsetY ] = GetSpriteOffset(avatar, sprite, direction, scale);
+        const offsetZ = sprite.getDirectionOffsetZ(direction);
 
-        let x = ((canvasOffset.x - (1 * asset.offsetX)) + offsetX);
-        let y = ((canvasOffset.y - (1 * asset.offsetY)) + offsetY);
+        const draw: ISpriteDraw = {
+            image: asset.texture.drawableCanvas,
+            x: (footX + (asset.offsetX - (scale / 2)) + offsetX),
+            y: (footY + asset.offsetY + offsetY),
+            z: offsetZ,
+            flipH: asset.flipH,
+            additive: (sprite.ink === 33)
+        };
 
-        ctx.save();
-
-        if(sprite.ink === 33) ctx.globalCompositeOperation = 'lighter';
-        
-        ctx.transform(1, 0, 0, 1, (x - avatarOffset.x), (y - avatarOffset.y));
-        ctx.drawImage(texture.drawableCanvas, 0, 0, texture.width, texture.height);
-
-        ctx.restore();
+        if(offsetZ < 0) layout.back.push(draw);
+        else layout.front.push(draw);
     }
+
+    layout.back.sort((a, b) => (a.z - b.z));
+    layout.front.sort((a, b) => (a.z - b.z));
+
+    return layout;
+}
+
+const GetSpriteOffset = (avatar: IAvatarImage, sprite: ISpriteDataContainer, direction: number, scale: number): [ number, number ] =>
+{
+    const layerData = avatar.getLayerData(sprite);
+
+    let offsetX = sprite.getDirectionOffsetX(direction);
+    let offsetY = sprite.getDirectionOffsetY(direction);
+
+    if(layerData)
+    {
+        offsetX += layerData.dx;
+        offsetY += layerData.dy;
+    }
+
+    if(scale < 48)
+    {
+        offsetX /= 2;
+        offsetY /= 2;
+    }
+
+    return [ offsetX, offsetY ];
 }

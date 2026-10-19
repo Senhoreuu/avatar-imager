@@ -21,7 +21,7 @@ export interface IAvatarImage extends IDisposable
     isAnimating(): boolean;
     getCanvasOffsets(): number[];
     initActionAppends(): void;
-    endActionAppends(): void;
+    endActionAppends(): Promise<void>;
     appendAction(_arg_1: string, ..._args: any[]): boolean;
     avatarSpriteData: IAvatarDataContainer;
     isPlaceholder(): boolean;
@@ -30,4 +30,5 @@ export interface IAvatarImage extends IDisposable
     resetAnimationFrameCounter(): void;
     mainAction: IActiveActionData;
     getTotalFrameCount(): number;
+    missingScaleAssets: number;
 }

@@ -34,9 +34,15 @@ export class FileUtilities
         if(url.startsWith('http'))
         {
             const data = await fetch(url);
-            const arrayBuffer = await data.arrayBuffer();
 
-            if(data.headers.get('Content-Type') !== 'application/octet-stream') return;
+            // do not rely on the Content-Type (CDNs often serve .nitro as binary/octet-stream, application/x-nitro, etc)
+            if(!data.ok) throw new Error(`HTTP ${ data.status } for ${ url }`);
+
+            const contentType = (data.headers.get('Content-Type') || '');
+
+            if(contentType.startsWith('text/html')) throw new Error(`Unexpected HTML response for ${ url }`);
+
+            const arrayBuffer = await data.arrayBuffer();
 
             if(arrayBuffer) content = Buffer.from(arrayBuffer);
         }
@@ -59,9 +65,10 @@ export class FileUtilities
         if(url.startsWith('http'))
         {
             const data = await fetch(url);
-            if(data.status === 404) return null;
 
-            if(data) content = await data.text();
+            if(!data.ok) return null;
+
+            content = await data.text();
         }
         else
         {
@@ -69,6 +76,9 @@ export class FileUtilities
 
             content = data.toString('utf-8');
         }
+
+        // strip UTF-8 BOM (JSON.parse fails on it)
+        if(content && (content.charCodeAt(0) === 0xFEFF)) content = content.substring(1);
 
         return content;
     }

@@ -120,4 +120,94 @@ export class CanvasUtilities
 
         return canvas;
     }
+
+    /**
+     * Integer upscale with nearest neighbor (keeps the pixel art sharp).
+     */
+    public static scaleNearest(canvas: Canvas, factor: number): Canvas
+    {
+        factor = Math.max(1, Math.round(factor));
+
+        if(factor === 1) return canvas;
+
+        const source = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+        const target = this.createNitroCanvas((canvas.width * factor), (canvas.height * factor));
+        const ctx = target.getContext('2d');
+        const output = ctx.createImageData(target.width, target.height);
+        const src = source.data;
+        const dst = output.data;
+
+        for(let y = 0; y < target.height; y++)
+        {
+            const sy = Math.floor(y / factor);
+
+            for(let x = 0; x < target.width; x++)
+            {
+                const s = (((sy * canvas.width) + Math.floor(x / factor)) * 4);
+                const d = (((y * target.width) + x) * 4);
+
+                dst[d] = src[s];
+                dst[d + 1] = src[s + 1];
+                dst[d + 2] = src[s + 2];
+                dst[d + 3] = src[s + 3];
+            }
+        }
+
+        ctx.putImageData(output, 0, 0);
+
+        return target;
+    }
+
+    /**
+     * Downscale by 2 averaging each 2x2 block (premultiplied alpha), instead of dropping every other pixel.
+     */
+    public static downscaleHalf(canvas: Canvas): Canvas
+    {
+        const width = Math.max(1, Math.floor(canvas.width / 2));
+        const height = Math.max(1, Math.floor(canvas.height / 2));
+        const source = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+        const target = this.createNitroCanvas(width, height);
+        const ctx = target.getContext('2d');
+        const output = ctx.createImageData(width, height);
+        const src = source.data;
+        const dst = output.data;
+
+        for(let y = 0; y < height; y++)
+        {
+            for(let x = 0; x < width; x++)
+            {
+                let r = 0, g = 0, b = 0, a = 0;
+
+                for(let dy = 0; dy < 2; dy++)
+                {
+                    for(let dx = 0; dx < 2; dx++)
+                    {
+                        const sx = Math.min(canvas.width - 1, ((x * 2) + dx));
+                        const sy = Math.min(canvas.height - 1, ((y * 2) + dy));
+                        const o = (((sy * canvas.width) + sx) * 4);
+                        const alpha = src[o + 3];
+
+                        r += (src[o] * alpha);
+                        g += (src[o + 1] * alpha);
+                        b += (src[o + 2] * alpha);
+                        a += alpha;
+                    }
+                }
+
+                const d = (((y * width) + x) * 4);
+
+                if(a)
+                {
+                    dst[d] = Math.round(r / a);
+                    dst[d + 1] = Math.round(g / a);
+                    dst[d + 2] = Math.round(b / a);
+                    dst[d + 3] = Math.round(a / 4);
+                }
+            }
+        }
+
+        ctx.putImageData(output, 0, 0);
+
+        return target;
+    }
 }

@@ -2,6 +2,7 @@ import { AdvancedMap, IAssetAnimation, IAssetManager, Point } from '../../core';
 import { ActionDefinition, AvatarActionManager, IActionDefinition, IActiveActionData } from './actions';
 import { Animation, AnimationManager, AvatarAnimationLayerData } from './animation';
 import { AvatarImagePartContainer } from './AvatarImagePartContainer';
+import { AvatarLibraryResolver } from './AvatarLibraryResolver';
 import { AvatarRenderManager } from './AvatarRenderManager';
 import { AvatarDirectionAngle } from './enum';
 import { AvatarModelGeometry } from './geometry';
@@ -22,6 +23,7 @@ export class AvatarStructure
     private _mandatorySetTypeIds: { [index: string]: { [index: number]: string[] } };
     private _actionManager: AvatarActionManager;
     private _defaultAction: IActionDefinition;
+    private _libraryResolver: AvatarLibraryResolver;
 
     constructor(renderManager: AvatarRenderManager)
     {
@@ -34,6 +36,12 @@ export class AvatarStructure
         this._mandatorySetTypeIds = {};
         this._actionManager = null;
         this._defaultAction = null;
+        this._libraryResolver = new AvatarLibraryResolver();
+    }
+
+    public get libraryResolver(): AvatarLibraryResolver
+    {
+        return this._libraryResolver;
     }
 
     public init(): void
@@ -374,65 +382,72 @@ export class AvatarStructure
                 if(_arg_8.getValue(_local_17)) continue;
             }
 
-            const _local_28 = _arg_2.getPartSetId(_local_17);
-            const _local_29 = _arg_2.getPartColorIds(_local_17);
-            const _local_30 = this._figureData.getSetType(_local_17);
+            const partCount = Math.max(1, _arg_2.getPartCount(_local_17));
 
-
-
-            if(_local_30)
+            for(let partIndex = 0; partIndex < partCount; partIndex++)
             {
-                const _local_31 = this._figureData.getPalette(_local_30.paletteID);
+                const _local_28 = _arg_2.getPartSetId(_local_17, partIndex);
+                const _local_29 = _arg_2.getPartColorIds(_local_17, partIndex);
+                const _local_30 = this._figureData.getSetType(_local_17);
 
-                if(_local_31)
+                if(_local_30)
                 {
-                    const _local_32 = _local_30.getPartSet(_local_28);
+                    const _local_31 = this._figureData.getPalette(_local_30.paletteID);
 
-                    if(_local_32)
+                    if(_local_31)
                     {
-                        removes = removes.concat(_local_32.hiddenLayers);
+                        const _local_32 = _local_30.getPartSet(_local_28);
 
-                        for(const _local_33 of _local_32.parts)
+                        if(_local_32)
                         {
-                            if(_local_16.indexOf(_local_33.type) > -1)
-                            {
-                                if(_local_15)
-                                {
-                                    const _local_19 = _local_15.getPart(_local_33.type);
+                            removes = removes.concat(_local_32.hiddenLayers);
 
-                                    if(_local_19)
+                            for(const _local_33 of _local_32.parts)
+                            {
+                                if(_local_16.indexOf(_local_33.type) > -1)
+                                {
+                                    if(_local_15)
                                     {
-                                        _local_20 = _local_19.frames;
+                                        const _local_19 = _local_15.getPart(_local_33.type);
+
+                                        if(_local_19)
+                                        {
+                                            _local_20 = _local_19.frames;
+                                        }
+                                        else
+                                        {
+                                            _local_20 = _local_14;
+                                        }
                                     }
                                     else
                                     {
                                         _local_20 = _local_14;
                                     }
+
+                                    _local_34 = _arg_3.definition;
+
+                                    if(_local_9.indexOf(_local_33.type) === -1) _local_34 = this._defaultAction;
+
+                                    const _local_13 = this._partSetsData.getPartDefinition(_local_33.type);
+
+                                    let _local_35 = (!_local_13) ? _local_33.type : _local_13.flippedSetType;
+
+                                    if(!_local_35 || (_local_35 === '')) _local_35 = _local_33.type;
+
+                                    if(_local_29 && (_local_29.length > (_local_33.colorLayerIndex - 1)))
+                                    {
+                                        _local_36 = _local_31.getColor(_local_29[(_local_33.colorLayerIndex - 1)]);
+                                    }
+
+                                    const _local_37 = (_local_33.colorLayerIndex > 0);
+                                    const _local_18 = new AvatarImagePartContainer(k, _local_33.type, _local_33.id.toString(), _local_36, _local_20, _local_34, _local_37, _local_33.paletteMap, _local_35);
+
+                                    const libraries = this._libraryResolver.getRequiredLibraries(_local_32, _local_33);
+
+                                    _local_18.setLibraries(libraries, this._libraryResolver.isConflictingPart(_local_33.type, _local_33.id));
+
+                                    _local_11.push(_local_18);
                                 }
-                                else
-                                {
-                                    _local_20 = _local_14;
-                                }
-
-                                _local_34 = _arg_3.definition;
-
-                                if(_local_9.indexOf(_local_33.type) === -1) _local_34 = this._defaultAction;
-
-                                const _local_13 = this._partSetsData.getPartDefinition(_local_33.type);
-
-                                let _local_35 = (!_local_13) ? _local_33.type : _local_13.flippedSetType;
-
-                                if(!_local_35 || (_local_35 === '')) _local_35 = _local_33.type;
-
-                                if(_local_29 && (_local_29.length > (_local_33.colorLayerIndex - 1)))
-                                {
-                                    _local_36 = _local_31.getColor(_local_29[(_local_33.colorLayerIndex - 1)]);
-                                }
-
-                                const _local_37 = (_local_33.colorLayerIndex > 0);
-                                const _local_18 = new AvatarImagePartContainer(k, _local_33.type, _local_33.id.toString(), _local_36, _local_20, _local_34, _local_37, _local_33.paletteMap, _local_35);
-
-                                _local_11.push(_local_18);
                             }
                         }
                     }

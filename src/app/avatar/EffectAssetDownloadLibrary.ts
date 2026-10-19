@@ -36,6 +36,8 @@ export class EffectAssetDownloadLibrary
 
         if(asset)
         {
+            if(!this._animation && asset.data) this._animation = asset.data.animations;
+
             this._state = EffectAssetDownloadLibrary.LOADED;
 
             return true;
@@ -44,23 +46,52 @@ export class EffectAssetDownloadLibrary
         return false;
     }
 
+    private _downloadPromise: Promise<boolean> = null;
+
     public async downloadAsset(): Promise<boolean>
     {
-        if(!this._assets || (this._state === EffectAssetDownloadLibrary.LOADING)) return;
+        if(!this._assets) return false;
 
         if(this.checkIfAssetLoaded()) return true;
 
+        if(this._downloadPromise) return this._downloadPromise;
+
         this._state = EffectAssetDownloadLibrary.LOADING;
 
-        if(!await this._assets.downloadAsset(this._downloadUrl)) return false;
+        this._downloadPromise = (async () =>
+        {
+            try
+            {
+                if(!await this._assets.downloadAsset(this._downloadUrl))
+                {
+                    this._state = EffectAssetDownloadLibrary.NOT_LOADED;
 
-        const collection = this._assets.getCollection(this._libraryName);
+                    return false;
+                }
 
-        if(collection) this._animation = collection.data.animations;
+                const collection = this._assets.getCollection(this._libraryName);
 
-        this._state = EffectAssetDownloadLibrary.LOADED;
+                if(collection) this._animation = collection.data.animations;
 
-        return true;
+                this._state = EffectAssetDownloadLibrary.LOADED;
+
+                return true;
+            }
+
+            catch(err)
+            {
+                this._state = EffectAssetDownloadLibrary.NOT_LOADED;
+
+                return false;
+            }
+
+            finally
+            {
+                this._downloadPromise = null;
+            }
+        })();
+
+        return this._downloadPromise;
     }
 
     public get libraryName(): string

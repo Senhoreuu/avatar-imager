@@ -15,6 +15,7 @@ export class FigurePartSet implements IFigurePartSet
     private _hiddenLayers: string[];
     private _isPreSelectable: boolean;
     private _isSellable: boolean;
+    private _library: string;
 
     constructor(type: string, data: IFigureDataSet)
     {
@@ -30,6 +31,7 @@ export class FigurePartSet implements IFigurePartSet
         this._hiddenLayers = [];
         this._isPreSelectable = data.preselectable;
         this._isSellable = data.sellable;
+        this._library = (data.lib || data.library || null);
 
         for(const part of data.parts)
         {
@@ -139,5 +141,10 @@ export class FigurePartSet implements IFigurePartSet
     public get isSellable(): boolean
     {
         return this._isSellable;
+    }
+
+    public get library(): string
+    {
+        return this._library;
     }
 }

@@ -1,6 +1,7 @@
 export interface RequestQuery
 {
     figure: string;
+    gender: string;
     size: string;
     action: string;
     headonly: string;

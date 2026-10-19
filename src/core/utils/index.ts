@@ -7,3 +7,4 @@ export * from './FileUtilities';
 export * from './Point';
 export * from './Rectangle';
 export * from './Texture';
+export * from './GifWriter';

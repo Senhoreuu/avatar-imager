@@ -92,6 +92,8 @@ export class AssetManager extends NitroManager implements IAssetManager
     {
         if(!assetUrls || !assetUrls.length) return false;
 
+        let success = true;
+
         for(const url of assetUrls)
         {
             try
@@ -100,16 +102,18 @@ export class AssetManager extends NitroManager implements IAssetManager
                 const buffer = await FileUtilities.readFileAsBuffer(url);
                 const bundle = await NitroBundle.from(buffer);
 
-                this.createCollectionFromNitroBundle(bundle);
+                if(!this.createCollectionFromNitroBundle(bundle)) success = false;
             }
 
             catch(err)
             {
+                this.logger.error(`Failed to download ${ url }: ${ (err && err.message) || err }`);
 
+                success = false;
             }
         }
 
-        return true;
+        return success;
     }
 
     public get collections(): AdvancedMap<string, IGraphicAssetCollection>

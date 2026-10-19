@@ -14,6 +14,8 @@ export class AvatarImagePartContainer
     private _isColorable: boolean;
     private _isBlendable: boolean;
     private _paletteMapId: number;
+    private _libraries: string[] = null;
+    private _strictLibraries: boolean = false;
 
     constructor(k: string, _arg_2: string, _arg_3: string, _arg_4: IPartColor, _arg_5: AvatarAnimationFrame[], _arg_6: IActionDefinition, _arg_7: boolean, _arg_8: number, _arg_9: string = '', _arg_10: boolean = false, _arg_11: number = 1)
     {
@@ -29,6 +31,22 @@ export class AvatarImagePartContainer
         this._isBlendable       = _arg_10;
 
         if(this._partType === 'ey') this._isColorable = false;
+    }
+
+    public setLibraries(libraries: string[], strict: boolean = false): void
+    {
+        this._libraries = libraries;
+        this._strictLibraries = strict;
+    }
+
+    public get libraries(): string[]
+    {
+        return this._libraries;
+    }
+
+    public get strictLibraries(): boolean
+    {
+        return this._strictLibraries;
     }
 
     public getFrameIndex(k: number): number

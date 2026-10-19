@@ -31,9 +31,34 @@ export class Palette implements IPalette
 
     public getColor(id: number): IPartColor
     {
-        if((id === undefined) || id < 0) return null;
+        if((id === undefined) || (id === null) || isNaN(id) || (id < 0)) return null;
 
-        return (this._colors.getValue(id.toString()) || null);
+        const existing = this._colors.getValue(id.toString());
+
+        if(existing) return existing;
+
+        // Hubbe custom colors: any id not present in the palette is a raw RGB value (0xRRGGBB)
+        return Palette.getCustomColor(id);
+    }
+
+    private static CUSTOM_COLORS: Map<number, IPartColor> = new Map();
+
+    public static getCustomColor(rgb: number): IPartColor
+    {
+        rgb = (Math.max(0, Math.min(0xFFFFFF, Math.floor(rgb))));
+
+        let color = Palette.CUSTOM_COLORS.get(rgb);
+
+        if(!color)
+        {
+            color = new PartColor({ id: rgb, index: 999999, club: 0, selectable: true, hexCode: rgb.toString(16).padStart(6, '0') });
+
+            if(Palette.CUSTOM_COLORS.size > 50000) Palette.CUSTOM_COLORS.clear();
+
+            Palette.CUSTOM_COLORS.set(rgb, color);
+        }
+
+        return color;
     }
 
     public get id(): number

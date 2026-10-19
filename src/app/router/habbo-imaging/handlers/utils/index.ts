@@ -11,6 +11,7 @@ export * from './GetDirectionRequest';
 export * from './GetEffectRequest';
 export * from './GetFigureRequest';
 export * from './GetFrameNumberRequest';
+export * from './GetGenderRequest';
 export * from './GetGestureRequest';
 export * from './GetHeadDirectionRequest';
 export * from './GetImageFormatRequest';

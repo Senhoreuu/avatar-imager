@@ -42,19 +42,44 @@ export class AvatarAssetDownloadLibrary
         return false;
     }
 
+    private _downloadPromise: Promise<boolean> = null;
+
     public async downloadAsset(): Promise<boolean>
     {
-        if(!this._assets || (this._state === AvatarAssetDownloadLibrary.LOADING)) return false;
+        if(!this._assets) return false;
 
         if(this.checkIfAssetLoaded()) return false;
 
+        // several requests may need the same library at the same time: all of them wait for the same download
+        if(this._downloadPromise) return this._downloadPromise;
+
         this._state = AvatarAssetDownloadLibrary.LOADING;
 
-        if(!await this._assets.downloadAsset(this._downloadUrl)) return false;
+        this._downloadPromise = (async () =>
+        {
+            try
+            {
+                const success = await this._assets.downloadAsset(this._downloadUrl);
 
-        this._state = AvatarAssetDownloadLibrary.LOADED;
+                this._state = (success ? AvatarAssetDownloadLibrary.LOADED : AvatarAssetDownloadLibrary.NOT_LOADED);
 
-        return true;
+                return success;
+            }
+
+            catch(err)
+            {
+                this._state = AvatarAssetDownloadLibrary.NOT_LOADED;
+
+                return false;
+            }
+
+            finally
+            {
+                this._downloadPromise = null;
+            }
+        })();
+
+        return this._downloadPromise;
     }
 
     public get libraryName(): string

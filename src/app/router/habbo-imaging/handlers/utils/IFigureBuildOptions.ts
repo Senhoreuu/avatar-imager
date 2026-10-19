@@ -1,6 +1,7 @@
 export interface IFigureBuildOptions
 {
     figure: string;
+    gender: string;
     size: number;
     setType: string;
     direction: number;

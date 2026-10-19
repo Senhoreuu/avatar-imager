@@ -1,90 +1,114 @@
-import { AdvancedMap } from '../../core';
 import { IAvatarFigureContainer } from './IAvatarFigureContainer';
 
+interface IFigurePartEntry
+{
+    type: string;
+    setId: number;
+    colorIds: number[];
+}
+
+/**
+ * Supports more than one item per set type (ex: "ha-1001-1.ha-1002-1"),
+ * exactly like the Hubbe renderer does.
+ */
 export class AvatarFigureContainer implements IAvatarFigureContainer
 {
-    private _parts: AdvancedMap<string, AdvancedMap<string, any>>;
+    private _parts: Map<string, IFigurePartEntry[]>;
 
     constructor(figure: string)
     {
-        this._parts = new AdvancedMap();
+        this._parts = new Map();
 
         this.parseFigure(figure);
     }
 
     public getPartTypeIds(): string[]
     {
-        return this.partSets().getKeys();
+        return Array.from(this._parts.keys());
     }
 
     public hasPartType(k: string): boolean
     {
-        return !!this.partSets().getValue(k);
+        const existing = this._parts.get(k);
+
+        return !!(existing && existing.length);
     }
 
-    public getPartSetId(k: string): number
+    public getPartCount(k: string): number
     {
-        const existing = this.partSets().getValue(k);
+        const existing = this._parts.get(k);
 
-        if(!existing) return 0;
-
-        return existing.getValue('setid');
+        return (existing ? existing.length : 0);
     }
 
-    public getPartColorIds(k: string): number[]
+    public getPartSetId(k: string, index: number = 0): number
     {
-        const existing = this.partSets().getValue(k);
+        const existing = this._parts.get(k);
 
-        if(!existing) return null;
+        if(!existing || !existing[index]) return 0;
 
-        return existing.getValue('colorids');
+        return existing[index].setId;
     }
 
-    public updatePart(setType: string, partSetId: number, colorIds: number[]): void
+    public getPartColorIds(k: string, index: number = 0): number[]
     {
-        const set: AdvancedMap<string, any> = new AdvancedMap();
+        const existing = this._parts.get(k);
 
-        set.add('type', setType);
-        set.add('setid', partSetId);
-        set.add('colorids', colorIds);
+        if(!existing || !existing[index]) return null;
 
-        const existingSets = this.partSets();
+        return existing[index].colorIds;
+    }
 
-        existingSets.remove(setType);
-        existingSets.add(setType, set);
+    public updatePart(setType: string, partSetId: number, colorIds: number[], index: number = 0): void
+    {
+        let existing = this._parts.get(setType);
+
+        if(!existing)
+        {
+            existing = [];
+
+            this._parts.set(setType, existing);
+        }
+
+        existing[index] = { type: setType, setId: partSetId, colorIds };
+    }
+
+    public appendPart(setType: string, partSetId: number, colorIds: number[]): void
+    {
+        let existing = this._parts.get(setType);
+
+        if(!existing)
+        {
+            existing = [];
+
+            this._parts.set(setType, existing);
+        }
+
+        existing.push({ type: setType, setId: partSetId, colorIds });
     }
 
     public removePart(k: string): void
     {
-        this.partSets().remove(k);
+        this._parts.delete(k);
     }
 
     public getFigureString(): string
     {
         const parts: string[] = [];
 
-        for(const key of this.partSets().getKeys())
+        for(const [ key, entries ] of this._parts)
         {
-            if(!key) continue;
+            if(!key || !entries) continue;
 
-            let setParts = [];
+            for(const entry of entries)
+            {
+                if(!entry) continue;
 
-            setParts.push(key);
-            setParts.push(this.getPartSetId(key));
-
-            setParts = setParts.concat(this.getPartColorIds(key));
-
-            parts.push(setParts.join('-'));
+                parts.push([ key, entry.setId, ...entry.colorIds ].join('-'));
+            }
         }
 
         return parts.join('.');
-    }
-
-    private partSets(): AdvancedMap<string, AdvancedMap<string, any>>
-    {
-        if(!this._parts) this._parts = new AdvancedMap();
-
-        return this._parts;
     }
 
     private parseFigure(figure: string): void
@@ -93,25 +117,37 @@ export class AvatarFigureContainer implements IAvatarFigureContainer
 
         for(const part of figure.split('.'))
         {
-            const pieces = part.split('-');
+            const pieces = part.trim().split('-');
 
-            if(pieces.length >= 2)
+            if(pieces.length < 2) continue;
+
+            const type = pieces[0];
+            const setId = parseInt(pieces[1]);
+
+            if(!type || isNaN(setId)) continue;
+
+            const colors: number[] = [];
+
+            for(let index = 2; index < pieces.length; index++)
             {
-                const type      = pieces[0];
-                const setId     = parseInt(pieces[1]);
-                const colors    = [];
-
-                let index = 2;
-
-                while(index < pieces.length)
-                {
-                    colors.push(parseInt(pieces[index]));
-
-                    index++;
-                }
-
-                this.updatePart(type, setId, colors);
+                // custom colors may come as plain RGB ints (ex: 16711680) or hex (#ff0000 / ff0000)
+                colors.push(AvatarFigureContainer.parseColorId(pieces[index]));
             }
+
+            this.appendPart(type, setId, colors);
         }
+    }
+
+    public static parseColorId(value: string): number
+    {
+        if(!value || !value.length) return NaN;
+
+        if(value.startsWith('#')) return parseInt(value.substring(1), 16);
+
+        if(/^\d+$/.test(value)) return parseInt(value, 10);
+
+        if(/^[0-9a-f]{6}$/i.test(value)) return parseInt(value, 16);
+
+        return parseInt(value, 10);
     }
 }

@@ -4,6 +4,7 @@ import { GetDirectionRequest } from './GetDirectionRequest';
 import { GetEffectRequest } from './GetEffectRequest';
 import { GetFigureRequest } from './GetFigureRequest';
 import { GetFrameNumberRequest } from './GetFrameNumberRequest';
+import { GetGenderRequest } from './GetGenderRequest';
 import { GetGestureRequest } from './GetGestureRequest';
 import { GetHeadDirectionRequest } from './GetHeadDirectionRequest';
 import { GetImageFormatRequest } from './GetImageFormatRequest';
@@ -15,10 +16,11 @@ import { RequestQuery } from './RequestQuery';
 export const BuildFigureOptionsRequest = (query: RequestQuery) =>
 {
     const figure = GetFigureRequest(query);
+    const gender = GetGenderRequest(query);
     const size = GetSizeRequest(query);
     const setType = GetSetTypeRequest(query);
-    const direction = (GetDirectionRequest(query) || 2);
-    const headDirection = (GetHeadDirectionRequest(query) || direction);
+    const direction = (GetDirectionRequest(query) ?? 2);
+    const headDirection = (GetHeadDirectionRequest(query) ?? direction);
     const action = GetActionRequest(query);
     const gesture = GetGestureRequest(query);
     const dance = GetDanceRequest(query);
@@ -28,6 +30,7 @@ export const BuildFigureOptionsRequest = (query: RequestQuery) =>
 
     return {
         figure,
+        gender,
         size,
         setType,
         direction,

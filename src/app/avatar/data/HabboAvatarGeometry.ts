@@ -12,17 +12,17 @@ export const HabboAvatarGeometry = {
                 'geometries': [
                     {
                         'id': 'vertical',
-                        'width': 64,
-                        'height': 110,
+                        'width': 90,
+                        'height': 130,
                         'dx': 0,
-                        'dy': 6
+                        'dy': 0
                     },
                     {
                         'id': 'sitting',
-                        'width': 64,
-                        'height': 110,
+                        'width': 90,
+                        'height': 130,
                         'dx': 0,
-                        'dy': 6
+                        'dy': 0
                     },
                     {
                         'id': 'horizontal',
@@ -111,7 +111,13 @@ export const HabboAvatarGeometry = {
                                 'id': 'leftarm'
                             },
                             {
+                                'id': 'petl'
+                            },
+                            {
                                 'id': 'rightarm'
+                            },
+                            {
+                                'id': 'petr'
                             }
                         ]
                     },
@@ -135,14 +141,40 @@ export const HabboAvatarGeometry = {
                         'x': 0,
                         'y': 0,
                         'z': 0.0,
-                        'radius': 2.0
+                        'radius': 2.0,
+                        'items': [
+                            {
+                                'id': 'mco',
+                                'x': 0,
+                                'y': 0,
+                                'z': 0,
+                                'radius': 0.01,
+                                'nx': 0,
+                                'ny': 0,
+                                'nz': -1,
+                                'double': false
+                            }
+                        ]
                     },
                     {
                         'id': 'bottom',
                         'x': 0,
                         'y': 0,
                         'z': 0.0,
-                        'radius': 0.001
+                        'radius': 0.001,
+                        'items': [
+                            {
+                                'id': 'mcu',
+                                'x': 0,
+                                'y': 0,
+                                'z': 0,
+                                'radius': 0.01,
+                                'nx': 0,
+                                'ny': 0,
+                                'nz': -1,
+                                'double': false
+                            }
+                        ]
                     },
                     {
                         'id': 'behind',
@@ -155,7 +187,7 @@ export const HabboAvatarGeometry = {
                         'id': 'torso',
                         'x': 0,
                         'y': 0,
-                        'z': 0.0,
+                        'z': 0,
                         'radius': 0.4,
                         'items': [
                             {
@@ -252,6 +284,28 @@ export const HabboAvatarGeometry = {
                                 'y': 0,
                                 'z': 0,
                                 'radius': 0.06,
+                                'nx': 0,
+                                'ny': 0,
+                                'nz': -1,
+                                'double': false
+                            },
+                            {
+                                'id': 'mc',
+                                'x': 0,
+                                'y': 0,
+                                'z': 0,
+                                'radius': 0.061,
+                                'nx': 0,
+                                'ny': 0,
+                                'nz': -1,
+                                'double': false
+                            },
+                            {
+                                'id': 'pt',
+                                'x': 0,
+                                'y': 0,
+                                'z': 0,
+                                'radius': 0.062,
                                 'nx': 0,
                                 'ny': 0,
                                 'nz': -1,
@@ -360,6 +414,38 @@ export const HabboAvatarGeometry = {
                                 'ny': 0,
                                 'nz': -1,
                                 'double': false
+                            },
+                            {
+                                'id': 'mcl',
+                                'x': 0,
+                                'y': 0,
+                                'z': 0,
+                                'radius': 0.026,
+                                'nx': 0,
+                                'ny': 0,
+                                'nz': -1,
+                                'double': false
+                            }
+                        ]
+                    },
+                    {
+                        'id': 'petl',
+                        'x': -1,
+                        'y': 0,
+                        'z': -0.51,
+                        'radius': 0.5,
+                        'orderBefore': 'leftarm',
+                        'items': [
+                            {
+                                'id': 'ptl',
+                                'x': 0,
+                                'y': 0,
+                                'z': 0,
+                                'radius': 0.027,
+                                'nx': 0,
+                                'ny': 0,
+                                'nz': -1,
+                                'double': false
                             }
                         ]
                     },
@@ -409,6 +495,38 @@ export const HabboAvatarGeometry = {
                                 'y': 0,
                                 'z': 0,
                                 'radius': 0.025,
+                                'nx': 0,
+                                'ny': 0,
+                                'nz': -1,
+                                'double': false
+                            },
+                            {
+                                'id': 'mcr',
+                                'x': 0,
+                                'y': 0,
+                                'z': 0,
+                                'radius': 0.026,
+                                'nx': 0,
+                                'ny': 0,
+                                'nz': -1,
+                                'double': false
+                            }
+                        ]
+                    },
+                    {
+                        'id': 'petr',
+                        'x': 1,
+                        'y': 0,
+                        'z': -0.51,
+                        'radius': 0.5,
+                        'orderBefore': 'rightarm',
+                        'items': [
+                            {
+                                'id': 'ptr',
+                                'x': 0,
+                                'y': 0,
+                                'z': 0,
+                                'radius': 0.027,
                                 'nx': 0,
                                 'ny': 0,
                                 'nz': -1,
@@ -534,14 +652,40 @@ export const HabboAvatarGeometry = {
                         'x': 0,
                         'y': 0,
                         'z': 0.0,
-                        'radius': 2.0
+                        'radius': 2.0,
+                        'items': [
+                            {
+                                'id': 'mco',
+                                'x': 0,
+                                'y': 0,
+                                'z': 0,
+                                'radius': 0.01,
+                                'nx': 0,
+                                'ny': 0,
+                                'nz': -1,
+                                'double': false
+                            }
+                        ]
                     },
                     {
                         'id': 'bottom',
                         'x': 0,
                         'y': 0,
                         'z': 0.0,
-                        'radius': 0.001
+                        'radius': 0.001,
+                        'items': [
+                            {
+                                'id': 'mcu',
+                                'x': 0,
+                                'y': 0,
+                                'z': 0,
+                                'radius': 0.01,
+                                'nx': 0,
+                                'ny': 0,
+                                'nz': -1,
+                                'double': false
+                            }
+                        ]
                     },
                     {
                         'id': 'behind',
@@ -554,7 +698,7 @@ export const HabboAvatarGeometry = {
                         'id': 'torso',
                         'x': 0,
                         'y': 0,
-                        'z': 0.0,
+                        'z': 0,
                         'radius': 0.4,
                         'items': [
                             {
@@ -651,6 +795,28 @@ export const HabboAvatarGeometry = {
                                 'y': 0,
                                 'z': 0,
                                 'radius': 0.06,
+                                'nx': 0,
+                                'ny': 0,
+                                'nz': -1,
+                                'double': false
+                            },
+                            {
+                                'id': 'mc',
+                                'x': 0,
+                                'y': 0,
+                                'z': 0,
+                                'radius': 0.061,
+                                'nx': 0,
+                                'ny': 0,
+                                'nz': -1,
+                                'double': false
+                            },
+                            {
+                                'id': 'pt',
+                                'x': 0,
+                                'y': 0,
+                                'z': 0,
+                                'radius': 0.062,
                                 'nx': 0,
                                 'ny': 0,
                                 'nz': -1,
@@ -759,6 +925,38 @@ export const HabboAvatarGeometry = {
                                 'ny': 0,
                                 'nz': -1,
                                 'double': false
+                            },
+                            {
+                                'id': 'mcl',
+                                'x': 0,
+                                'y': 0,
+                                'z': 0,
+                                'radius': 0.026,
+                                'nx': 0,
+                                'ny': 0,
+                                'nz': -1,
+                                'double': false
+                            }
+                        ]
+                    },
+                    {
+                        'id': 'petl',
+                        'x': -1,
+                        'y': 0,
+                        'z': -0.51,
+                        'radius': 0.5,
+                        'orderBefore': 'leftarm',
+                        'items': [
+                            {
+                                'id': 'ptl',
+                                'x': 0,
+                                'y': 0,
+                                'z': 0,
+                                'radius': 0.027,
+                                'nx': 0,
+                                'ny': 0,
+                                'nz': -1,
+                                'double': false
                             }
                         ]
                     },
@@ -808,6 +1006,38 @@ export const HabboAvatarGeometry = {
                                 'y': 0,
                                 'z': 0,
                                 'radius': 0.025,
+                                'nx': 0,
+                                'ny': 0,
+                                'nz': -1,
+                                'double': false
+                            },
+                            {
+                                'id': 'mcr',
+                                'x': 0,
+                                'y': 0,
+                                'z': 0,
+                                'radius': 0.026,
+                                'nx': 0,
+                                'ny': 0,
+                                'nz': -1,
+                                'double': false
+                            }
+                        ]
+                    },
+                    {
+                        'id': 'petr',
+                        'x': 1,
+                        'y': 0,
+                        'z': -0.51,
+                        'radius': 0.5,
+                        'orderBefore': 'rightarm',
+                        'items': [
+                            {
+                                'id': 'ptr',
+                                'x': 0,
+                                'y': 0,
+                                'z': 0,
+                                'radius': 0.027,
                                 'nx': 0,
                                 'ny': 0,
                                 'nz': -1,
@@ -929,10 +1159,50 @@ export const HabboAvatarGeometry = {
                 'id': 'horizontal',
                 'bodyParts': [
                     {
-                        'id': 'torso',
+                        'id': 'top',
                         'x': 0,
                         'y': 0,
                         'z': 0.0,
+                        'radius': 2.0,
+                        'items': [
+                            {
+                                'id': 'mco',
+                                'x': 0,
+                                'y': 0,
+                                'z': 0,
+                                'radius': 0.01,
+                                'nx': 0,
+                                'ny': 0,
+                                'nz': -1,
+                                'double': false
+                            }
+                        ]
+                    },
+                    {
+                        'id': 'bottom',
+                        'x': 0,
+                        'y': 0,
+                        'z': 0.0,
+                        'radius': 0.001,
+                        'items': [
+                            {
+                                'id': 'mcu',
+                                'x': 0,
+                                'y': 0,
+                                'z': 0,
+                                'radius': 0.01,
+                                'nx': 0,
+                                'ny': 0,
+                                'nz': -1,
+                                'double': false
+                            }
+                        ]
+                    },
+                    {
+                        'id': 'torso',
+                        'x': 0,
+                        'y': 0,
+                        'z': 0,
                         'radius': 0.4,
                         'items': [
                             {
@@ -1029,6 +1299,28 @@ export const HabboAvatarGeometry = {
                                 'y': 0,
                                 'z': 0,
                                 'radius': 0.06,
+                                'nx': 0,
+                                'ny': 0,
+                                'nz': -1,
+                                'double': false
+                            },
+                            {
+                                'id': 'mc',
+                                'x': 0,
+                                'y': 0,
+                                'z': 0,
+                                'radius': 0.061,
+                                'nx': 0,
+                                'ny': 0,
+                                'nz': -1,
+                                'double': false
+                            },
+                            {
+                                'id': 'pt',
+                                'x': 0,
+                                'y': 0,
+                                'z': 0,
+                                'radius': 0.062,
                                 'nx': 0,
                                 'ny': 0,
                                 'nz': -1,
@@ -1137,6 +1429,38 @@ export const HabboAvatarGeometry = {
                                 'ny': 0,
                                 'nz': -1,
                                 'double': false
+                            },
+                            {
+                                'id': 'mcl',
+                                'x': 0,
+                                'y': 0,
+                                'z': 0,
+                                'radius': 0.026,
+                                'nx': 0,
+                                'ny': 0,
+                                'nz': -1,
+                                'double': false
+                            }
+                        ]
+                    },
+                    {
+                        'id': 'petl',
+                        'x': -1,
+                        'y': 0,
+                        'z': -0.51,
+                        'radius': 0.6,
+                        'orderBefore': 'leftarm',
+                        'items': [
+                            {
+                                'id': 'ptl',
+                                'x': 0,
+                                'y': 0,
+                                'z': 0,
+                                'radius': 0.027,
+                                'nx': 0,
+                                'ny': 0,
+                                'nz': -1,
+                                'double': false
                             }
                         ]
                     },
@@ -1186,6 +1510,38 @@ export const HabboAvatarGeometry = {
                                 'y': 0,
                                 'z': 0,
                                 'radius': 0.025,
+                                'nx': 0,
+                                'ny': 0,
+                                'nz': -1,
+                                'double': false
+                            },
+                            {
+                                'id': 'mcr',
+                                'x': 0,
+                                'y': 0,
+                                'z': 0,
+                                'radius': 0.026,
+                                'nx': 0,
+                                'ny': 0,
+                                'nz': -1,
+                                'double': false
+                            }
+                        ]
+                    },
+                    {
+                        'id': 'petr',
+                        'x': 1,
+                        'y': 0,
+                        'z': -0.51,
+                        'radius': 0.6,
+                        'orderBefore': 'rightarm',
+                        'items': [
+                            {
+                                'id': 'ptr',
+                                'x': 0,
+                                'y': 0,
+                                'z': 0,
+                                'radius': 0.027,
                                 'nx': 0,
                                 'ny': 0,
                                 'nz': -1,
@@ -1307,10 +1663,50 @@ export const HabboAvatarGeometry = {
                 'id': 'swhorizontal',
                 'bodyParts': [
                     {
-                        'id': 'torso',
+                        'id': 'top',
                         'x': 0,
                         'y': 0,
                         'z': 0.0,
+                        'radius': 2.0,
+                        'items': [
+                            {
+                                'id': 'mco',
+                                'x': 0,
+                                'y': 0,
+                                'z': 0,
+                                'radius': 0.01,
+                                'nx': 0,
+                                'ny': 0,
+                                'nz': -1,
+                                'double': false
+                            }
+                        ]
+                    },
+                    {
+                        'id': 'bottom',
+                        'x': 0,
+                        'y': 0,
+                        'z': 0.0,
+                        'radius': 0.001,
+                        'items': [
+                            {
+                                'id': 'mcu',
+                                'x': 0,
+                                'y': 0,
+                                'z': 0,
+                                'radius': 0.01,
+                                'nx': 0,
+                                'ny': 0,
+                                'nz': -1,
+                                'double': false
+                            }
+                        ]
+                    },
+                    {
+                        'id': 'torso',
+                        'x': 0,
+                        'y': 0,
+                        'z': 0,
                         'radius': 0.4,
                         'items': [
                             {
@@ -1407,6 +1803,28 @@ export const HabboAvatarGeometry = {
                                 'y': 0,
                                 'z': 0,
                                 'radius': 0.06,
+                                'nx': 0,
+                                'ny': 0,
+                                'nz': -1,
+                                'double': false
+                            },
+                            {
+                                'id': 'mc',
+                                'x': 0,
+                                'y': 0,
+                                'z': 0,
+                                'radius': 0.061,
+                                'nx': 0,
+                                'ny': 0,
+                                'nz': -1,
+                                'double': false
+                            },
+                            {
+                                'id': 'pt',
+                                'x': 0,
+                                'y': 0,
+                                'z': 0,
+                                'radius': 0.062,
                                 'nx': 0,
                                 'ny': 0,
                                 'nz': -1,
@@ -1515,6 +1933,38 @@ export const HabboAvatarGeometry = {
                                 'ny': 0,
                                 'nz': -1,
                                 'double': false
+                            },
+                            {
+                                'id': 'mcl',
+                                'x': 0,
+                                'y': 0,
+                                'z': 0,
+                                'radius': 0.026,
+                                'nx': 0,
+                                'ny': 0,
+                                'nz': -1,
+                                'double': false
+                            }
+                        ]
+                    },
+                    {
+                        'id': 'petl',
+                        'x': -1,
+                        'y': 0,
+                        'z': -0.51,
+                        'radius': 0.6,
+                        'orderBefore': 'leftarm',
+                        'items': [
+                            {
+                                'id': 'ptl',
+                                'x': 0,
+                                'y': 0,
+                                'z': 0,
+                                'radius': 0.027,
+                                'nx': 0,
+                                'ny': 0,
+                                'nz': -1,
+                                'double': false
                             }
                         ]
                     },
@@ -1564,6 +2014,38 @@ export const HabboAvatarGeometry = {
                                 'y': 0,
                                 'z': 0,
                                 'radius': 0.025,
+                                'nx': 0,
+                                'ny': 0,
+                                'nz': -1,
+                                'double': false
+                            },
+                            {
+                                'id': 'mcr',
+                                'x': 0,
+                                'y': 0,
+                                'z': 0,
+                                'radius': 0.026,
+                                'nx': 0,
+                                'ny': 0,
+                                'nz': -1,
+                                'double': false
+                            }
+                        ]
+                    },
+                    {
+                        'id': 'petr',
+                        'x': 1,
+                        'y': 0,
+                        'z': -0.51,
+                        'radius': 0.6,
+                        'orderBefore': 'rightarm',
+                        'items': [
+                            {
+                                'id': 'ptr',
+                                'x': 0,
+                                'y': 0,
+                                'z': 0,
+                                'radius': 0.027,
                                 'nx': 0,
                                 'ny': 0,
                                 'nz': -1,
@@ -1688,7 +2170,7 @@ export const HabboAvatarGeometry = {
                         'id': 'torso',
                         'x': 0,
                         'y': 0,
-                        'z': 0.0,
+                        'z': 0,
                         'radius': 0.4,
                         'items': [
                             {
@@ -1708,6 +2190,46 @@ export const HabboAvatarGeometry = {
                                 'y': 0,
                                 'z': 0,
                                 'radius': 0.03,
+                                'nx': 0,
+                                'ny': 0,
+                                'nz': -1,
+                                'double': false
+                            }
+                        ]
+                    },
+                    {
+                        'id': 'leftarm',
+                        'x': -1,
+                        'y': 0,
+                        'z': 0,
+                        'radius': 0.6,
+                        'items': [
+                            {
+                                'id': 'lhs',
+                                'x': 0,
+                                'y': 0,
+                                'z': 0,
+                                'radius': 0.01,
+                                'nx': 0,
+                                'ny': 0,
+                                'nz': -1,
+                                'double': false
+                            }
+                        ]
+                    },
+                    {
+                        'id': 'rightarm',
+                        'x': 1,
+                        'y': 0,
+                        'z': 0,
+                        'radius': 0.6,
+                        'items': [
+                            {
+                                'id': 'rhs',
+                                'x': 0,
+                                'y': 0,
+                                'z': 0,
+                                'radius': 0.01,
                                 'nx': 0,
                                 'ny': 0,
                                 'nz': -1,

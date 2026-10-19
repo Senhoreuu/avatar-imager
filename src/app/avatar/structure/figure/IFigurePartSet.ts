@@ -13,4 +13,5 @@ export interface IFigurePartSet
     hiddenLayers: string[];
     isPreSelectable: boolean;
     isSellable: boolean;
+    library: string;
 }

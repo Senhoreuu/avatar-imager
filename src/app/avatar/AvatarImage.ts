@@ -331,6 +331,8 @@ export class AvatarImage implements IAvatarImage
             partCount--;
         }
 
+        if(this._avatarSpriteData) this.applyAvatarSpriteData(canvas);
+
         if(scale !== 1) return CanvasUtilities.scaleCanvas(canvas, scale, scale);
 
         // canvas.width *= scale;
@@ -365,6 +367,57 @@ export class AvatarImage implements IAvatarImage
 
     //     return Texture.from(textureCanvas);
     // }
+
+    // same result as the renderer filters: colorTransform (AdjustmentFilter) + grayscale + PaletteMapFilter(reds)
+    private applyAvatarSpriteData(canvas: Canvas): void
+    {
+        const data = this._avatarSpriteData;
+
+        if(!data) return;
+
+        const rm = (data.redMultiplier ?? 1);
+        const gm = (data.greenMultiplier ?? 1);
+        const bm = (data.blueMultiplier ?? 1);
+        const am = (data.alphaMultiplier ?? 1);
+        const reds = (data.paletteIsGrayscale ? data.reds : null);
+
+        if((rm === 1) && (gm === 1) && (bm === 1) && (am === 1) && !reds) return;
+
+        const ctx = canvas.getContext('2d');
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const pixels = imageData.data;
+
+        for(let i = 0; i < pixels.length; i += 4)
+        {
+            if(!pixels[i + 3]) continue;
+
+            let r = (pixels[i] * rm);
+            let g = (pixels[i + 1] * gm);
+            let b = (pixels[i + 2] * bm);
+
+            if(reds && (reds.length === 256))
+            {
+                const gray = Math.min(255, Math.floor((r + g + b) * 0.33));
+                const color = (reds[gray] || 0);
+
+                r = ((color >> 16) & 0xFF);
+                g = ((color >> 8) & 0xFF);
+                b = (color & 0xFF);
+            }
+
+            pixels[i] = Math.min(255, r);
+            pixels[i + 1] = Math.min(255, g);
+            pixels[i + 2] = Math.min(255, b);
+            pixels[i + 3] = Math.min(255, (pixels[i + 3] * am));
+        }
+
+        ctx.putImageData(imageData, 0, 0);
+    }
+
+    public get missingScaleAssets(): number
+    {
+        return (this._cache ? this._cache.missingScaleAssets : 0);
+    }
 
     public getAsset(k: string): IGraphicAsset
     {

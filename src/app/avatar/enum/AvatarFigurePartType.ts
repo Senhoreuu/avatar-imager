@@ -25,5 +25,13 @@
     public static RIGHT_HAND_ITEM: string = 'ri';
     public static LEFT_COAT_SLEEVE: string = 'lc';
     public static RIGHT_COAT_SLEEVE: string = 'rc';
+    public static PET: string = 'pt';
+    public static PET_RIGHT: string = 'ptr';
+    public static PET_LEFT: string = 'ptl';
+    public static MISC: string = 'mc';
+    public static MISC_RIGHT: string = 'mcr';
+    public static MISC_LEFT: string = 'mcl';
+    public static MISC_OVER: string = 'mco';
+    public static MISC_UNDER: string = 'mcu';
     public static FIGURE_SETS: string[] = [ AvatarFigurePartType.SHOES, AvatarFigurePartType.LEGS, AvatarFigurePartType.CHEST, AvatarFigurePartType.WAIST_ACCESSORY, AvatarFigurePartType.CHEST_ACCESSORY, AvatarFigurePartType.HEAD, AvatarFigurePartType.HAIR, AvatarFigurePartType.FACE_ACCESSORY, AvatarFigurePartType.EYE_ACCESSORY, AvatarFigurePartType.HEAD_ACCESSORY, AvatarFigurePartType.HEAD_ACCESSORY_EXTRA, AvatarFigurePartType.COAT_CHEST, AvatarFigurePartType.CHEST_PRINT ];
 }

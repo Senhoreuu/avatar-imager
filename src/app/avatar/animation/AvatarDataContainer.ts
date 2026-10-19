@@ -73,6 +73,26 @@ export class AvatarDataContainer implements IAvatarDataContainer
         return this._colorMap.getValue('alphas');
     }
 
+    public get redMultiplier(): number
+    {
+        return this._redMultiplier;
+    }
+
+    public get greenMultiplier(): number
+    {
+        return this._greenMultiplier;
+    }
+
+    public get blueMultiplier(): number
+    {
+        return this._blueMultiplier;
+    }
+
+    public get alphaMultiplier(): number
+    {
+        return this._alphaMultiplier;
+    }
+
     public get paletteIsGrayscale(): boolean
     {
         return this._paletteIsGrayscale;

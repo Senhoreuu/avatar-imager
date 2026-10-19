@@ -1,6 +1,7 @@
 import { AdvancedMap, FileUtilities, IAssetManager } from '../../core';
 import { Application } from '../Application';
 import { AvatarStructure } from './AvatarStructure';
+import { compileAnimationShorthand, HubbeCustomDances } from './data';
 import { EffectAssetDownloadLibrary } from './EffectAssetDownloadLibrary';
 
 export class EffectAssetDownloadManager
@@ -33,6 +34,8 @@ export class EffectAssetDownloadManager
 
         this.processEffectMap(json.effects);
 
+        this.registerCustomDances();
+
         await this.processMissingLibraries();
     }
 
@@ -44,6 +47,8 @@ export class EffectAssetDownloadManager
 
         if(!url || !url.length) return;
 
+        const librariesByName: Map<string, EffectAssetDownloadLibrary> = new Map();
+
         for(const effect of data)
         {
             if(!effect) continue;
@@ -52,19 +57,54 @@ export class EffectAssetDownloadManager
             const lib = (effect.lib as string);
             const revision = (effect.revision || '');
 
-            if(this._libraryNames.indexOf(lib) >= 0) continue;
+            if(!lib) continue;
 
-            this._libraryNames.push(lib);
+            // several effect ids can share the same library: all of them must point to it
+            let downloadLibrary = librariesByName.get(lib);
 
-            const downloadLibrary = new EffectAssetDownloadLibrary(lib, revision, this._assets, url);
+            if(!downloadLibrary)
+            {
+                this._libraryNames.push(lib);
+
+                downloadLibrary = new EffectAssetDownloadLibrary(lib, revision, this._assets, url);
+
+                librariesByName.set(lib, downloadLibrary);
+            }
 
             let existing = this._effectMap.getValue(id);
 
-            if(!existing) existing = [];
+            if(!existing)
+            {
+                existing = [];
 
-            existing.push(downloadLibrary);
+                this._effectMap.add(id, existing);
+            }
 
-            this._effectMap.add(id, existing);
+            if(existing.indexOf(downloadLibrary) === -1) existing.push(downloadLibrary);
+        }
+    }
+
+    private registerCustomDances(): void
+    {
+        for(const [ key, code ] of Object.entries(HubbeCustomDances))
+        {
+            try
+            {
+                const animation: any = {
+                    ['Dance ' + key]: {
+                        name: ('dance.' + key),
+                        desc: ('Dance ' + key),
+                        frames: compileAnimationShorthand(code)
+                    }
+                };
+
+                this._structure.registerAnimation(animation);
+            }
+
+            catch(err)
+            {
+                Application.instance.logger.error(`Invalid custom dance ${ key }: ${ err.message }`);
+            }
         }
     }
 
@@ -123,6 +163,25 @@ export class EffectAssetDownloadManager
 
         if(!await library.downloadAsset()) return;
 
-        this._structure.registerAnimation(library.animation);
+        this.registerLibraryAnimations(library);
+    }
+
+    // a library can carry more than one animation (the renderer only registers the first one)
+    private registerLibraryAnimations(library: EffectAssetDownloadLibrary): void
+    {
+        const animations = library.animation;
+
+        if(!animations) return;
+
+        for(const key of Object.keys(animations))
+        {
+            const animation = animations[key];
+
+            if(!animation || !animation.name) continue;
+
+            if(this._structure.animationManager.getAnimation(animation.name)) continue;
+
+            this._structure.registerAnimation({ [key]: animation });
+        }
     }
 }
