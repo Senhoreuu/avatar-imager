@@ -8,7 +8,7 @@ import { AvatarScaleType, AvatarSetType, IAvatarImage, ISpriteDataContainer } fr
 import { BuildFigureOptionsRequest, BuildFigureOptionsStringRequest, IFigureBuildOptions, ProcessActionRequest, ProcessDanceRequest, ProcessDirectionRequest, ProcessEffectRequest, ProcessGestureRequest, RequestQuery } from './utils';
 
 // bump this whenever the output changes, so old cached files are not served anymore
-const RENDER_VERSION = 'hubbe-3';
+const RENDER_VERSION = 'hubbe-4';
 
 // Nitro updates the avatar animation every 2 room frames (24fps) => ~12 frames per second
 const GIF_FRAME_DELAY = (parseInt(process.env.AVATAR_GIF_FRAME_DELAY_MS) || 80);
@@ -186,28 +186,34 @@ const RenderFrames = async (query: RequestQuery, buildOptions: IFigureBuildOptio
         layouts.push(BuildFrameLayout(avatar, image, scale));
     }
 
-    // canvas = the avatar canvas, expanded when an effect draws outside of it
-    let minX = 0;
-    let minY = 0;
-    let maxX = layouts[0].image.width;
-    let maxY = layouts[0].image.height;
+    // output = the classic Habbo canvas (64x110 large / 45x72 small), expanded only when something
+    // (pets, misc items, effects) really draws outside of it
+    const base = GetBaseRect(layouts[0].image, scaleType);
+
+    let minX = base.x;
+    let minY = base.y;
+    let maxX = (base.x + base.width);
+    let maxY = (base.y + base.height);
+
+    const include = (image: Canvas, x: number, y: number, flipH: boolean = false) =>
+    {
+        const bounds = GetOpaqueBounds(image);
+
+        if(!bounds) return;
+
+        const left = (flipH ? (x - bounds.x - bounds.width) : (x + bounds.x));
+
+        minX = Math.min(minX, left);
+        minY = Math.min(minY, (y + bounds.y));
+        maxX = Math.max(maxX, (left + bounds.width));
+        maxY = Math.max(maxY, (y + bounds.y + bounds.height));
+    };
 
     for(const layout of layouts)
     {
-        minX = Math.min(minX, layout.x);
-        minY = Math.min(minY, layout.y);
-        maxX = Math.max(maxX, (layout.x + layout.image.width));
-        maxY = Math.max(maxY, (layout.y + layout.image.height));
+        include(layout.image, layout.x, layout.y);
 
-        for(const sprite of [ ...layout.back, ...layout.front ])
-        {
-            const left = (sprite.flipH ? (sprite.x - sprite.image.width) : sprite.x);
-
-            minX = Math.min(minX, left);
-            minY = Math.min(minY, sprite.y);
-            maxX = Math.max(maxX, (left + sprite.image.width));
-            maxY = Math.max(maxY, (sprite.y + sprite.image.height));
-        }
+        for(const sprite of [ ...layout.back, ...layout.front ]) include(sprite.image, sprite.x, sprite.y, sprite.flipH);
     }
 
     minX = Math.floor(minX);
@@ -335,4 +341,44 @@ const GetSpriteOffset = (avatar: IAvatarImage, sprite: ISpriteDataContainer, dir
     }
 
     return [ offsetX, offsetY ];
+}
+
+// The renderer uses a 90x130 canvas (room for pets / misc parts), the classic imager output is 64x110
+const GetBaseRect = (image: Canvas, scaleType: string) =>
+{
+    if((scaleType === AvatarScaleType.LARGE) && (image.width === 90) && (image.height === 130)) return { x: 13, y: 14, width: 64, height: 110 };
+
+    return { x: 0, y: 0, width: image.width, height: image.height };
+}
+
+const OPAQUE_BOUNDS_CACHE: WeakMap<Canvas, { x: number, y: number, width: number, height: number }> = new WeakMap();
+
+const GetOpaqueBounds = (image: Canvas) =>
+{
+    if(!image || !image.width || !image.height) return null;
+
+    if(OPAQUE_BOUNDS_CACHE.has(image)) return OPAQUE_BOUNDS_CACHE.get(image);
+
+    const pixels = image.getContext('2d').getImageData(0, 0, image.width, image.height).data;
+
+    let minX = image.width, minY = image.height, maxX = -1, maxY = -1;
+
+    for(let y = 0; y < image.height; y++)
+    {
+        for(let x = 0; x < image.width; x++)
+        {
+            if(!pixels[(((y * image.width) + x) * 4) + 3]) continue;
+
+            if(x < minX) minX = x;
+            if(x > maxX) maxX = x;
+            if(y < minY) minY = y;
+            if(y > maxY) maxY = y;
+        }
+    }
+
+    const bounds = ((maxX < 0) ? null : { x: minX, y: minY, width: ((maxX - minX) + 1), height: ((maxY - minY) + 1) });
+
+    OPAQUE_BOUNDS_CACHE.set(image, bounds);
+
+    return bounds;
 }
